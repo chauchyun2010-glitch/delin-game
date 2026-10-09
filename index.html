@@ -340,20 +340,64 @@ function PhotoPicker({ preview, setPreview }) {
 }
 
 // ─── SETUP SCREEN ────────────────────────────
+// ── 自動解析 Firebase 設定（支援 JS 物件和 JSON 兩種格式）──
+function parseFirebaseCfg(raw) {
+  let text = raw.trim();
+  // 移除 const/let/var firebaseConfig = ... ; 包裝
+  text = text.replace(/^(?:const|let|var)\s+\w+\s*=\s*/, '');
+  text = text.replace(/;?\s*$/, '').trim();
+  // 先嘗試直接 JSON 解析
+  try { return JSON.parse(text); } catch(_) {}
+  // 將 JS 物件轉成 JSON
+  let json = text
+    .replace(/^\s*\/\/[^\n]*/gm, '')                             // 只移除行首的 // 註解（不影響 URL 中的 //）
+    .replace(/\/\*[\s\S]*?\*\//g, '')                            // 移除區塊註解
+    .replace(/,\s*([}\]])/g, '$1')                               // 移除尾隨逗號
+    .replace(/([{,\n]\s*)([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:/g, '$1"$2":') // 給 key 加引號
+    .replace(/:\s*'((?:[^'\\]|\\.)*)'/g, ':"$1"');              // 單引號 value 轉雙引號
+  try { return JSON.parse(json); } catch(e) {
+    throw new Error('無法解析設定，請確認內容完整複製');
+  }
+}
+
 function SetupScreen({ onDone }) {
   const [fbCfg, setFbCfg] = useState('');
   const [apiKey, setApiKey] = useState('');
-  const [err, setErr] = useState('');
+  const [err, setErr]       = useState('');
+  const [hint, setHint]     = useState('');
   const [testing, setTesting] = useState(false);
+
+  // 即時預覽解析結果
+  const onCfgChange = (val) => {
+    setFbCfg(val);
+    setErr(''); setHint('');
+    if (!val.trim()) return;
+    try {
+      const p = parseFirebaseCfg(val);
+      const fields = ['apiKey','databaseURL','projectId'];
+      const missing = fields.filter(f => !p[f]);
+      if (missing.length) {
+        setHint(`⚠️ 缺少欄位：${missing.join('、')}，請確認已完整複製`);
+      } else {
+        setHint('✅ 格式正確，可以繼續');
+      }
+    } catch(e) {
+      setHint('❌ ' + e.message);
+    }
+  };
 
   const save = async () => {
     setErr('');
     if (!fbCfg.trim()) { setErr('請貼上 Firebase 設定'); return; }
     if (!apiKey.trim()) { setErr('請輸入 Anthropic API Key'); return; }
     let parsed;
-    try { parsed = JSON.parse(fbCfg.trim()); }
-    catch { setErr('Firebase 設定格式錯誤，請確認是否為正確的 JSON'); return; }
-    if (!parsed.databaseURL) { setErr('缺少 databaseURL，請確認已建立 Realtime Database'); return; }
+    try { parsed = parseFirebaseCfg(fbCfg); }
+    catch(e) { setErr(e.message); return; }
+    if (!parsed.databaseURL) {
+      setErr('缺少 databaseURL！請確認你已在 Firebase 建立「Realtime Database」，並完整複製 firebaseConfig。');
+      return;
+    }
+    if (!parsed.apiKey) { setErr('缺少 apiKey，請重新複製 firebaseConfig 完整內容'); return; }
     setTesting(true);
     try {
       initFirebase(parsed);
@@ -362,10 +406,22 @@ function SetupScreen({ onDone }) {
       localStorage.setItem(LS_KEY, apiKey.trim());
       onDone(apiKey.trim());
     } catch(e) {
-      setErr('連線失敗：' + e.message);
+      setErr('Firebase 連線失敗：' + e.message + '。請確認 databaseURL 正確且資料庫已啟用測試模式。');
     }
     setTesting(false);
   };
+
+  const PLACEHOLDER = `// 直接從 Firebase 控制台複製整段即可，兩種格式都支援：
+
+const firebaseConfig = {
+  apiKey: "AIzaSy...",
+  authDomain: "xxx.firebaseapp.com",
+  databaseURL: "https://xxx-default-rtdb.firebaseio.com",
+  projectId: "xxx",
+  storageBucket: "xxx.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123:web:abc"
+};`;
 
   return (
     <div className="screen">
@@ -376,37 +432,59 @@ function SetupScreen({ onDone }) {
           <h1>{APP_NAME}</h1>
           <p className="logo-sub">初次設定</p>
         </div>
-        <p style={{fontSize:'.88rem',color:'#7AA0B8',marginBottom:'1rem',lineHeight:1.7}}>
-          本系統需要 <b style={{color:'#EFF6FF'}}>Firebase</b>（免費同步資料庫）和 <b style={{color:'#EFF6FF'}}>Anthropic API Key</b>（AI 判題），請依照以下步驟完成設定：
-        </p>
+
         <div className="setup-steps">
           <div className="setup-step">
-            前往 <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a>，用 Google 帳號登入並建立新專案
+            前往 <a href="https://console.firebase.google.com" target="_blank" rel="noreferrer">console.firebase.google.com</a> 登入 → 建立新專案
           </div>
           <div className="setup-step">
-            在專案中點選「<b>Realtime Database</b>」→「建立資料庫」→ 選擇「<b>測試模式</b>」
+            左側點「<b>Realtime Database</b>」→「建立資料庫」→ 選「<b>測試模式</b>」→「完成」
           </div>
           <div className="setup-step">
-            回到「專案設定」→「您的應用程式」→ 點選「<b>&lt;/&gt; 網頁</b>」→ 複製 <b>firebaseConfig</b> 物件（JSON 格式）
+            左上角齒輪「<b>專案設定</b>」→「您的應用程式」→ 點「<b>&lt;/&gt;</b>」→ 輸入任意名稱 → 複製整個 <b>firebaseConfig</b> 區塊（包含 const 那行）貼到下方
           </div>
           <div className="setup-step">
-            前往 <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> 取得 <b>API Key</b>
+            前往 <a href="https://console.anthropic.com" target="_blank" rel="noreferrer">console.anthropic.com</a> →「API Keys」→「Create Key」→ 複製金鑰
           </div>
         </div>
-        <div className="note-box">⚠️ API Key 儲存在你的瀏覽器，請只在受信任的裝置上設定，且此系統僅供內部活動使用。</div>
+
         <div className="field mt-md">
-          <label>Firebase 設定（JSON）</label>
-          <textarea className="inp" rows={6} value={fbCfg} onChange={e => setFbCfg(e.target.value)}
-            placeholder={'{\n  "apiKey": "...",\n  "databaseURL": "https://xxx.firebaseio.com",\n  ...\n}'}/>
+          <label>Firebase 設定
+            <span style={{marginLeft:'.5rem',fontSize:'.7rem',color:'#3A6080',fontWeight:'normal',textTransform:'none'}}>
+              直接貼上 Firebase 給你的整段程式碼即可
+            </span>
+          </label>
+          <textarea className="inp" rows={8} value={fbCfg}
+            onChange={e => onCfgChange(e.target.value)}
+            placeholder={PLACEHOLDER}
+            style={{fontFamily:'monospace',fontSize:'.82rem'}}/>
+          {hint && (
+            <p style={{fontSize:'.8rem',marginTop:'.35rem',
+              color: hint.startsWith('✅') ? '#4ADE80' : hint.startsWith('⚠️') ? '#FCD34D' : '#F87171'}}>
+              {hint}
+            </p>
+          )}
         </div>
+
         <div className="field">
           <label>Anthropic API Key</label>
-          <input className="inp" type="password" value={apiKey} onChange={e => setApiKey(e.target.value)}
-            placeholder="sk-ant-api03-..."/>
+          <input className="inp" type="password" value={apiKey}
+            onChange={e => { setApiKey(e.target.value); setErr(''); }}
+            placeholder="sk-ant-api03-..."
+            onKeyDown={e => e.key==='Enter' && save()}/>
         </div>
-        {err && <p className="err">{err}</p>}
-        <button className={`btn btn-primary btn-lg ${testing?'btn-spin':''}`} onClick={save} disabled={testing}>
-          {testing ? '測試連線中…' : '完成設定，開始使用 →'}
+
+        <div className="note-box">⚠️ 設定只儲存在此瀏覽器，玩家不會看到設定頁面。請只在管理員裝置上完成此設定。</div>
+
+        {err && (
+          <div style={{background:'rgba(248,113,113,.1)',border:'1px solid rgba(248,113,113,.3)',borderRadius:'.75rem',padding:'.85rem 1rem',marginTop:'.75rem'}}>
+            <p style={{color:'#F87171',fontSize:'.85rem',lineHeight:1.7}}>❌ {err}</p>
+          </div>
+        )}
+
+        <button className={`btn btn-primary btn-lg ${testing?'btn-spin':''}`}
+          onClick={save} disabled={testing} style={{marginTop:'1rem'}}>
+          {testing ? '⏳ 測試連線中…' : '完成設定，開始使用 →'}
         </button>
       </div>
     </div>
