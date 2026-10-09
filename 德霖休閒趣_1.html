@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#07111F">
+  <title>德霖休閒趣</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Unbounded:wght@700;900&display=swap" rel="stylesheet">
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:#07111F;color:#EFF6FF;font-family:'Noto Sans TC',sans-serif;min-height:100vh;overflow-x:hidden}
+    .screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem;position:relative;overflow:hidden}
+    .card{background:#0D1E33;border:1px solid #1A3050;border-radius:1.5rem;padding:1.75rem 1.5rem;width:100%;max-width:480px;position:relative;z-index:2;box-shadow:0 30px 80px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.04)}
+    .admin-card{max-width:660px;max-height:90vh;overflow-y:auto}
+    .game-card{max-width:520px}
+    .rings{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+    .ring{position:absolute;border-radius:50%;border:1px solid rgba(0,210,200,.1);animation:pulse 8s ease-in-out infinite}
+    .r1{width:500px;height:500px;top:-100px;right:-150px}
+    .r2{width:350px;height:350px;bottom:-80px;left:-80px;border-color:rgba(255,107,53,.08);animation-delay:3s}
+    .r3{width:200px;height:200px;top:40%;left:40%;animation-delay:6s}
+    @keyframes pulse{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:1;transform:scale(1.05)}}
+    .dot{position:absolute;border-radius:50%;animation:drift linear infinite}
+    .d1{width:4px;height:4px;background:#00D2C8;opacity:.6;top:20%;left:30%;animation-duration:12s}
+    .d2{width:3px;height:3px;background:#FF6B35;opacity:.5;top:60%;left:70%;animation-duration:16s;animation-delay:4s}
+    .d3{width:5px;height:5px;background:#00D2C8;opacity:.4;top:40%;left:85%;animation-duration:20s;animation-delay:2s}
+    .d4{width:3px;height:3px;background:#FF6B35;opacity:.5;top:80%;left:20%;animation-duration:14s;animation-delay:6s}
+    @keyframes drift{0%{transform:translateY(0) rotate(0)}50%{transform:translateY(-20px) rotate(180deg)}100%{transform:translateY(0) rotate(360deg)}}
+    .logo{text-align:center;margin-bottom:2rem}
+    .logo-icon{font-size:3rem;display:block;margin-bottom:.6rem}
+    .logo h1{font-family:'Unbounded',sans-serif;font-size:1.7rem;color:#00D2C8;letter-spacing:-.01em}
+    .logo-sub{font-size:.7rem;letter-spacing:.3em;color:#3A6080;margin-top:.4rem;text-transform:uppercase}
+    .field{margin-bottom:.85rem}
+    .field label,.field-label{font-size:.75rem;color:#5A7A90;letter-spacing:.05em;text-transform:uppercase;margin-bottom:.4rem;display:block}
+    .inp{width:100%;padding:.7rem 1rem;background:#091626;border:1px solid #1A3050;border-radius:.75rem;color:#EFF6FF;font-size:.95rem;outline:none;resize:vertical;font-family:'Noto Sans TC',sans-serif;transition:border .2s}
+    .inp:focus{border-color:#00D2C8}
+    .inp::placeholder{color:#2A4A60}
+    textarea.inp{resize:vertical;min-height:80px}
+    .code-inp{letter-spacing:.25em;text-align:center;font-size:1.1rem;font-family:'Unbounded',sans-serif}
+    .btn{display:flex;align-items:center;justify-content:center;width:100%;padding:.75rem 1.25rem;border:none;border-radius:.75rem;font-family:'Noto Sans TC',sans-serif;font-size:.95rem;font-weight:700;cursor:pointer;transition:all .2s;margin-top:.5rem}
+    .btn-primary{background:#00D2C8;color:#07111F}
+    .btn-primary:hover{background:#00EDE1;transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,210,200,.3)}
+    .btn-primary:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+    .btn-secondary{background:#FF6B35;color:#fff}
+    .btn-secondary:hover{background:#FF8055;transform:translateY(-1px)}
+    .btn-secondary:disabled{opacity:.45;cursor:not-allowed;transform:none}
+    .btn-ghost{background:transparent;color:#5A7A90;border:1px solid #1A3050}
+    .btn-ghost:hover{color:#EFF6FF;border-color:#3A6080}
+    .btn-danger{background:#EF4444;color:#fff}
+    .btn-danger:hover{background:#F87171}
+    .btn-inline{width:auto;margin-top:0;flex-shrink:0;padding:.7rem 1rem}
+    .btn-lg{padding:1rem 1.5rem;font-size:1.05rem}
+    .btn-sm{padding:.5rem 1rem;font-size:.85rem}
+    .btn-xs{padding:.3rem .7rem;font-size:.75rem;margin-top:0;width:auto}
+    .btn-glow{box-shadow:0 0 24px rgba(0,210,200,.4),0 0 60px rgba(0,210,200,.15)}
+    .btn-spin{opacity:.75;cursor:wait}
+    .back-btn{background:transparent;border:1px solid #1A3050;color:#5A7A90;padding:.4rem .9rem;border-radius:.5rem;cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-size:.85rem;white-space:nowrap}
+    .back-btn:hover{color:#EFF6FF}
+    .row-between{display:flex;align-items:center;justify-content:space-between}
+    .row-gap{display:flex;align-items:center;gap:.5rem}
+    .mb-xs{margin-bottom:.4rem}
+    .mb-sm{margin-bottom:.75rem}
+    .mb-md{margin-bottom:1.25rem}
+    .mt-sm{margin-top:.5rem}
+    .mt-md{margin-top:1rem}
+    .muted{color:#3A6080;text-align:center;font-size:.9rem}
+    .muted-sm{color:#3A6080;font-size:.8rem}
+    .err{color:#F87171;font-size:.85rem;margin-top:.35rem}
+    .info-text{color:#3A6080;text-align:center;font-size:.88rem;margin-top:1rem}
+    .tag{display:inline-block;padding:.2rem .6rem;border-radius:.4rem;font-size:.75rem;font-weight:700}
+    .tag-teal{background:rgba(0,210,200,.15);color:#00D2C8;border:1px solid rgba(0,210,200,.25)}
+    .tag-coral{background:rgba(255,107,53,.15);color:#FF6B35;border:1px solid rgba(255,107,53,.25)}
+    .tag-gray{background:rgba(90,122,144,.15);color:#5A7A90;border:1px solid rgba(90,122,144,.25)}
+    .chips{display:flex;flex-wrap:wrap;gap:.4rem}
+    .chip{background:#091626;border:1px solid #1A3050;border-radius:.5rem;padding:.25rem .65rem;font-size:.85rem}
+    .chip-me{border-color:#00D2C8;color:#00D2C8}
+    .chip-sm{font-size:.78rem;padding:.15rem .5rem}
+    .pill{background:#0D2035;border:1px solid #1A3050;border-radius:2rem;padding:.3rem .8rem;font-size:.85rem}
+    .sync-dot-wrap{display:flex;align-items:center;gap:.35rem}
+    .sync-label{font-size:.72rem;color:#3A6080}
+    .sync-pulse{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+    .sync-pulse.ok{background:#22C55E;box-shadow:0 0 6px #22C55E;animation:blink 2s ease-in-out infinite}
+    .sync-pulse.warn{background:#F59E0B}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+    .card-title{font-family:'Unbounded',sans-serif;font-size:1.25rem;color:#00D2C8;margin-bottom:1.25rem}
+    .code-section{margin-top:.5rem}
+    .code-row{display:flex;gap:.5rem}
+    .verified-bar{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);color:#4ADE80;border-radius:.75rem;padding:.6rem 1rem;font-size:.85rem;margin-bottom:1rem}
+    .section{margin-bottom:1.25rem}
+    .groups-row{display:flex;flex-wrap:wrap;gap:.6rem}
+    .grp-mini{background:#091626;border:1px solid #1A3050;border-radius:.75rem;padding:.65rem .85rem;min-width:100px;flex:1}
+    .grp-mini-me{border-color:#00D2C8;background:rgba(0,210,200,.04)}
+    .grp-mini-hd{font-size:.8rem;font-weight:700;color:#00D2C8;margin-bottom:.35rem}
+    .grp-mini-m{font-size:.78rem;color:#7AA0B8;line-height:1.7}
+    .prog-track{position:relative;height:4px;background:#1A3050;border-radius:2px;margin:.75rem 0 2rem}
+    .prog-fill{height:100%;background:linear-gradient(90deg,#00D2C8,#00EDE1);border-radius:2px;transition:width .6s ease}
+    .prog-node{position:absolute;width:10px;height:10px;border-radius:50%;background:#1A3050;top:-3px;transform:translateX(-50%);transition:all .3s}
+    .nd-done{background:#00D2C8}
+    .nd-cur{background:#00D2C8;box-shadow:0 0 12px #00D2C8;transform:translateX(-50%) scale(1.4)}
+    .stage-h{font-family:'Unbounded',sans-serif;font-size:1rem;color:#EFF6FF;margin-bottom:1rem;line-height:1.4}
+    .hint-box{background:#091626;border:1px solid #1A3050;border-left:3px solid #00D2C8;border-radius:.75rem;padding:1rem 1.2rem;margin-bottom:1.25rem}
+    .hint-top{font-size:.72rem;color:#00D2C8;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.5rem}
+    .hint-body{font-size:.92rem;line-height:1.8;color:#B8D4E8}
+    .ans-area{display:flex;flex-direction:column;gap:.6rem}
+    .or-line{display:flex;align-items:center;gap:.75rem;color:#3A6080;font-size:.8rem}
+    .or-line::before,.or-line::after{content:"";flex:1;height:1px;background:#1A3050}
+    .team-row{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin-top:1.25rem}
+    .fb{display:flex;align-items:flex-start;gap:.75rem;padding:.9rem 1rem;border-radius:.75rem;margin-top:1rem;animation:fadein .3s ease}
+    .fb-ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3)}
+    .fb-err{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3)}
+    .fb p{font-size:.88rem;line-height:1.65}
+    @keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+    .photo-wrap{display:flex;flex-direction:column;gap:.5rem}
+    .photo-zone{border:2px dashed #1A3050;border-radius:1rem;min-height:140px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:border .2s;overflow:hidden;background:#091626}
+    .photo-zone:hover{border-color:#00D2C8}
+    .photo-zone.filled{border-style:solid;border-color:#00D2C8;padding:0}
+    .photo-cam{font-size:2rem;margin-bottom:.5rem}
+    .photo-zone p{font-size:.9rem;color:#5A7A90}
+    .photo-zone small{font-size:.75rem;color:#2A4A60;margin-top:.25rem}
+    .photo-img{width:100%;max-height:240px;object-fit:cover;display:block}
+    .trophy-anim{font-size:4rem;display:block;animation:bounce 1s ease-in-out infinite alternate}
+    @keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-12px)}}
+    .finish-title{font-family:'Unbounded',sans-serif;color:#00D2C8;font-size:1.5rem;margin:.75rem 0 .4rem;text-align:center}
+    .finish-sub{color:#5A7A90;font-size:.9rem;text-align:center}
+    .confetti-row{margin-top:1.5rem;font-size:1.5rem;letter-spacing:.5rem;text-align:center;animation:fadein .5s ease .5s both}
+    .admin-h{font-family:'Unbounded',sans-serif;font-size:1.05rem;color:#00D2C8}
+    .tab-bar{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1.25rem}
+    .tab-btn{background:#091626;border:1px solid #1A3050;color:#5A7A90;padding:.45rem .9rem;border-radius:.5rem;cursor:pointer;font-size:.82rem;font-family:'Noto Sans TC',sans-serif;transition:all .2s}
+    .tab-btn.active{border-color:#00D2C8;color:#00D2C8;background:rgba(0,210,200,.08)}
+    .tab-body{display:flex;flex-direction:column;gap:.6rem}
+    .s-item{background:#091626;border:1px solid #1A3050;border-radius:.85rem;padding:.85rem}
+    .s-row{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+    .s-num{background:rgba(0,210,200,.1);color:#00D2C8;border-radius:.35rem;padding:.15rem .5rem;font-size:.72rem;font-weight:700;white-space:nowrap}
+    .s-name{flex:1;font-size:.88rem;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .add-btn{background:transparent;border:2px dashed #1A3050;color:#3A6080;border-radius:.85rem;padding:.75rem;cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-size:.88rem;width:100%;transition:all .2s}
+    .add-btn:hover{border-color:#00D2C8;color:#00D2C8}
+    .p-row{display:flex;align-items:center;gap:.6rem;background:#091626;border-radius:.75rem;padding:.65rem .85rem;flex-wrap:wrap}
+    .p-av{width:30px;height:30px;background:linear-gradient(135deg,#00D2C8,#0095A0);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#07111F;font-weight:900;font-size:.85rem;flex-shrink:0}
+    .p-name{flex:1;font-weight:600;font-size:.88rem}
+    .empty{color:#2A4A60;text-align:center;padding:2rem;font-size:.88rem}
+    .g-item{background:#091626;border:1px solid #1A3050;border-radius:.85rem;padding:.85rem}
+    .mini-prog{height:3px;background:#1A3050;border-radius:2px;overflow:hidden}
+    .mini-fill{height:100%;background:#00D2C8;border-radius:2px;transition:width .5s}
+    .editor{display:flex;flex-direction:column;gap:.5rem}
+    .type-btns,.size-row{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.5rem}
+    .type-btn,.size-btn{background:#091626;border:1px solid #1A3050;color:#5A7A90;padding:.4rem .85rem;border-radius:.5rem;cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-size:.82rem;transition:all .2s}
+    .type-btn.active,.size-btn.active{border-color:#00D2C8;color:#00D2C8;background:rgba(0,210,200,.1)}
+    .info-box{background:#091626;border:1px solid #1A3050;border-radius:.85rem;padding:1rem 1.2rem;display:flex;flex-direction:column;gap:.55rem}
+    .info-box p{font-size:.85rem;color:#7AA0B8;line-height:1.6}
+    .info-box b{color:#EFF6FF}
+    .icon-btn{background:transparent;border:none;cursor:pointer;font-size:1.1rem;padding:.2rem;line-height:1}
+    .admin-card::-webkit-scrollbar{width:4px}
+    .admin-card::-webkit-scrollbar-track{background:#091626}
+    .admin-card::-webkit-scrollbar-thumb{background:#1A3050;border-radius:2px}
+    /* Setup screen */
+    .setup-card{max-width:560px}
+    .setup-steps{counter-reset:step;display:flex;flex-direction:column;gap:.5rem;margin:.75rem 0}
+    .setup-step{background:#091626;border:1px solid #1A3050;border-radius:.75rem;padding:.85rem 1rem;font-size:.88rem;color:#7AA0B8;line-height:1.6;counter-increment:step;position:relative;padding-left:2.8rem}
+    .setup-step::before{content:counter(step);position:absolute;left:.9rem;top:.85rem;background:#00D2C8;color:#07111F;width:1.4rem;height:1.4rem;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.75rem}
+    .setup-step b{color:#EFF6FF}
+    .setup-step a{color:#00D2C8;text-decoration:none}
+    .setup-step a:hover{text-decoration:underline}
+    .note-box{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:.75rem;padding:.75rem 1rem;font-size:.82rem;color:#FCD34D;margin:.5rem 0}
+    @media(max-width:480px){.card{padding:1.4rem 1.1rem}.logo h1{font-size:1.45rem}.stage-h{font-size:.9rem}.admin-h{font-size:.9rem}.tab-btn{font-size:.75rem;padding:.4rem .7rem}}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+// ─── CONSTANTS ───────────────────────────────
+const APP_NAME   = "德霖休閒趣";
+const APP_SUB    = "DELIN FUN QUEST";
+const ADMIN_PW   = "admin123";
+const DEFAULT_CODE = "DELIN2025";
+const LS_FB  = "delin_fb";
+const LS_KEY = "delin_key";
+
+const INIT_STAGES = [
+  { id:1, title:"第一關：觀察力挑戰",
+    hint:"仔細觀察活動現場，找出隱藏在四個角落的數字，從左上角順時針排列就是答案（4位數）。",
+    answer:"1234", type:"text", photoDesc:"",
+    okMsg:"🎉 答對了！繼續前進！", failHint:"提示：找找看四個角落各藏了什麼數字？" },
+  { id:2, title:"第二關：全員合照任務",
+    hint:"找到活動現場的特色地標，全組成員在地標前拍一張合照，上傳給系統確認！",
+    answer:"", type:"photo", photoDesc:"照片中需要包含全組至少2位成員，且能清楚看到活動現場的特色地標或裝置。",
+    okMsg:"📸 合照任務完成！繼續闖下一關！", failHint:"請確保照片清晰，且能看到全組成員和特色地標。" },
+  { id:3, title:"第三關：數字邏輯",
+    hint:"1、1、2、3、5、8、？——這是著名的數列，第七個數字是多少？",
+    answer:"13", type:"text", photoDesc:"",
+    okMsg:"🏆 恭喜完成所有關卡！你們是冠軍！", failHint:"每個數字等於前兩個數字的總和，算算看！" },
+];
+
+// ─── FIREBASE ────────────────────────────────
+let _db = null;
+
+function initFirebase(cfg) {
+  try {
+    firebase.apps.forEach(a => a.delete());
+  } catch(e) {}
+  const app = firebase.initializeApp(typeof cfg === 'string' ? JSON.parse(cfg) : cfg);
+  _db = firebase.database(app);
+}
+
+const db = {
+  async get(path) {
+    if (!_db) return null;
+    const s = await _db.ref(path).once('value');
+    return s.val();
+  },
+  async set(path, val) {
+    if (!_db) return;
+    await _db.ref(path).set(val);
+  },
+  async del(path) {
+    if (!_db) return;
+    await _db.ref(path).remove();
+  },
+  on(path, cb) {
+    if (!_db) return () => {};
+    const ref = _db.ref(path);
+    ref.on('value', s => cb(s.val()));
+    return () => ref.off('value');
+  },
+};
+
+// Firebase paths
+const P = {
+  players:  'game/players',
+  player:   id => `game/players/${id}`,
+  groups:   'game/groups',
+  progress: gid => `game/progress/${gid}`,
+  stages:   'game/stages',
+  code:     'game/code',
+};
+
+// ─── CLAUDE API ──────────────────────────────
+async function judgeText(answer, correct, hint, failHint, apiKey) {
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6', max_tokens: 200,
+        system: `你是密室闖關遊戲裁判。正確答案是：${correct}。忽略大小寫、全半形、前後空格。只回傳JSON：{"correct":true/false,"message":"繁體中文訊息（不超過40字）"}`,
+        messages: [{ role:'user', content:`關卡提示：${hint}\n玩家答案：${answer}\n備用提示：${failHint}` }],
+      }),
+    });
+    const d = await res.json();
+    return JSON.parse((d.content?.[0]?.text || '').replace(/```json|```/g,'').trim());
+  } catch {
+    const ok = answer.trim().toLowerCase() === correct.trim().toLowerCase();
+    return { correct: ok, message: ok ? '答對了！' : failHint };
+  }
+}
+
+async function judgePhoto(b64, mime, desc, failHint, apiKey) {
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6', max_tokens: 300,
+        system: `你是密室闖關遊戲裁判，判斷照片是否符合要求。只回傳JSON：{"correct":true/false,"message":"繁體中文說明（不超過60字）"}`,
+        messages: [{ role:'user', content: [
+          { type:'image', source: { type:'base64', media_type: mime, data: b64 } },
+          { type:'text', text: `照片要求：${desc}\n備用提示：${failHint}\n請判斷此照片是否符合要求。` },
+        ]}],
+      }),
+    });
+    const d = await res.json();
+    return JSON.parse((d.content?.[0]?.text || '').replace(/```json|```/g,'').trim());
+  } catch {
+    return { correct: false, message: '照片判斷暫時失敗，請重試。' };
+  }
+}
+
+function fileToB64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res({ b64: r.result.split(',')[1], mime: file.type });
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+// ─── SMALL COMPONENTS ────────────────────────
+function Rings() {
+  return (
+    <div className="rings" aria-hidden="true">
+      <div className="ring r1"/><div className="ring r2"/><div className="ring r3"/>
+      <div className="dot d1"/><div className="dot d2"/><div className="dot d3"/><div className="dot d4"/>
+    </div>
+  );
+}
+
+function SyncDot({ live }) {
+  return (
+    <span className="sync-dot-wrap">
+      <span className={`sync-pulse ${live ? 'ok' : 'warn'}`}/>
+      <span className="sync-label">{live ? '即時同步' : '連線中…'}</span>
+    </span>
+  );
+}
+
+function Tag({ children, v = 'teal' }) {
+  return <span className={`tag tag-${v}`}>{children}</span>;
+}
+
+function PhotoPicker({ preview, setPreview }) {
+  const ref = useRef();
+  return (
+    <div className="photo-wrap">
+      <div className={`photo-zone ${preview ? 'filled' : ''}`} onClick={() => ref.current.click()}>
+        {preview
+          ? <img src={preview.url} alt="預覽" className="photo-img"/>
+          : <><span className="photo-cam">📷</span><p>點擊選擇照片</p><small>JPG / PNG / HEIC</small></>
+        }
+      </div>
+      {preview && (
+        <button className="btn btn-ghost btn-xs" onClick={() => { setPreview(null); ref.current.value = ''; }}>
+          ↩ 重新選擇
+        </button>
+      )}
+      <input ref={ref} type="file" accept="image/*" style={{display:'none'}}
+        onChange={e => {
+          const f = e.target.files[0];
+          if (f) setPreview({ url: URL.createObjectURL(f), file: f });
+        }}/>
+    </div>
+  );
+}
+
+// ─── SETUP SCREEN ────────────────────────────
+function SetupScreen({ onDone }) {
+  const [fbCfg, setFbCfg] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [err, setErr] = useState('');
+  const [testing, setTesting] = useState(false);
+
+  const save = async () => {
+    setErr('');
+    if (!fbCfg.trim()) { setErr('請貼上 Firebase 設定'); return; }
+    if (!apiKey.trim()) { setErr('請輸入 Anthropic API Key'); return; }
+    let parsed;
+    try { parsed = JSON.parse(fbCfg.trim()); }
+    catch { setErr('Firebase 設定格式錯誤，請確認是否為正確的 JSON'); return; }
+    if (!parsed.databaseURL) { setErr('缺少 databaseURL，請確認已建立 Realtime Database'); return; }
+    setTesting(true);
+    try {
+      initFirebase(parsed);
+      await db.set('game/ping', Date.now());
+      localStorage.setItem(LS_FB, JSON.stringify(parsed));
+      localStorage.setItem(LS_KEY, apiKey.trim());
+      onDone(apiKey.trim());
+    } catch(e) {
+      setErr('連線失敗：' + e.message);
+    }
+    setTesting(false);
+  };
+
+  return (
+    <div className="screen">
+      <Rings/>
+      <div className="card setup-card">
+        <div className="logo">
+          <span className="logo-icon">🏕️</span>
+          <h1>{APP_NAME}</h1>
+          <p className="logo-sub">初次設定</p>
+        </div>
+        <p style={{fontSize:'.88rem',color:'#7AA0B8',marginBottom:'1rem',lineHeight:1.7}}>
+          本系統需要 <b style={{color:'#EFF6FF'}}>Firebase</b>（免費同步資料庫）和 <b style={{color:'#EFF6FF'}}>Anthropic API Key</b>（AI 判題），請依照以下步驟完成設定：
+        </p>
+        <div className="setup-steps">
+          <div className="setup-step">
+            前往 <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a>，用 Google 帳號登入並建立新專案
+          </div>
+          <div className="setup-step">
+            在專案中點選「<b>Realtime Database</b>」→「建立資料庫」→ 選擇「<b>測試模式</b>」
+          </div>
+          <div className="setup-step">
+            回到「專案設定」→「您的應用程式」→ 點選「<b>&lt;/&gt; 網頁</b>」→ 複製 <b>firebaseConfig</b> 物件（JSON 格式）
+          </div>
+          <div className="setup-step">
+            前往 <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> 取得 <b>API Key</b>
+          </div>
+        </div>
+        <div className="note-box">⚠️ API Key 儲存在你的瀏覽器，請只在受信任的裝置上設定，且此系統僅供內部活動使用。</div>
+        <div className="field mt-md">
+          <label>Firebase 設定（JSON）</label>
+          <textarea className="inp" rows={6} value={fbCfg} onChange={e => setFbCfg(e.target.value)}
+            placeholder={'{\n  "apiKey": "...",\n  "databaseURL": "https://xxx.firebaseio.com",\n  ...\n}'}/>
+        </div>
+        <div className="field">
+          <label>Anthropic API Key</label>
+          <input className="inp" type="password" value={apiKey} onChange={e => setApiKey(e.target.value)}
+            placeholder="sk-ant-api03-..."/>
+        </div>
+        {err && <p className="err">{err}</p>}
+        <button className={`btn btn-primary btn-lg ${testing?'btn-spin':''}`} onClick={save} disabled={testing}>
+          {testing ? '測試連線中…' : '完成設定，開始使用 →'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── LOGIN ───────────────────────────────────
+function LoginScreen({ onLogin, onAdmin }) {
+  const [name, setName] = useState('');
+  const [pw, setPw] = useState('');
+  const [mode, setMode] = useState('player');
+  const [err, setErr] = useState('');
+
+  const doLogin = () => {
+    if (!name.trim()) { setErr('請輸入你的名字'); return; }
+    onLogin(name.trim());
+  };
+  const doAdmin = () => {
+    if (pw === ADMIN_PW) onAdmin();
+    else setErr('管理員密碼錯誤');
+  };
+
+  return (
+    <div className="screen">
+      <Rings/>
+      <div className="card">
+        <div className="logo">
+          <span className="logo-icon">🏕️</span>
+          <h1>{APP_NAME}</h1>
+          <p className="logo-sub">{APP_SUB}</p>
+        </div>
+        {mode === 'player' ? (
+          <>
+            <div className="field">
+              <label>你的名字</label>
+              <input className="inp" value={name} onChange={e => { setName(e.target.value); setErr(''); }}
+                placeholder="輸入名字…" onKeyDown={e => e.key==='Enter' && doLogin()}/>
+            </div>
+            {err && <p className="err">{err}</p>}
+            <button className="btn btn-primary btn-lg" onClick={doLogin}>加入遊戲 →</button>
+            <button className="btn btn-ghost btn-sm mt-sm" onClick={() => { setMode('admin'); setErr(''); }}>管理員入口</button>
+          </>
+        ) : (
+          <>
+            <div className="field">
+              <label>管理員密碼</label>
+              <input className="inp" type="password" value={pw}
+                onChange={e => { setPw(e.target.value); setErr(''); }}
+                placeholder="輸入密碼…" onKeyDown={e => e.key==='Enter' && doAdmin()}/>
+            </div>
+            {err && <p className="err">{err}</p>}
+            <button className="btn btn-primary btn-lg" onClick={doAdmin}>進入後台 →</button>
+            <button className="btn btn-ghost btn-sm mt-sm" onClick={() => { setMode('player'); setErr(''); }}>← 返回</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── LOBBY ───────────────────────────────────
+function LobbyScreen({ player, onStart, onAdmin }) {
+  const [code, setCode] = useState('');
+  const [verified, setVerified] = useState(false);
+  const [codeErr, setCodeErr] = useState('');
+  const [serverCode, setServerCode] = useState(DEFAULT_CODE);
+  const [players, setPlayers] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [live, setLive] = useState(false);
+
+  // Register self
+  useEffect(() => {
+    db.set(P.player(player.id), { id: player.id, name: player.name, at: Date.now() });
+  }, []);
+
+  // Real-time listeners
+  useEffect(() => {
+    const u1 = db.on(P.code,    v => { if (v) setServerCode(v); setLive(true); });
+    const u2 = db.on(P.players, v => setPlayers(v ? Object.values(v) : []));
+    const u3 = db.on(P.groups,  v => setGroups(v ? (Array.isArray(v) ? v : Object.values(v)) : []));
+    return () => { u1(); u2(); u3(); };
+  }, []);
+
+  const verify = () => {
+    if (code.toUpperCase() === serverCode) { setVerified(true); setCodeErr(''); }
+    else setCodeErr('遊戲代碼錯誤，請向主辦人確認');
+  };
+
+  const myGroup = groups.find(g => g.members?.some(m => m.id === player.id));
+
+  return (
+    <div className="screen">
+      <Rings/>
+      <div className="card">
+        <div className="row-between mb-md">
+          <span className="pill">👤 {player.name}</span>
+          <div className="row-gap">
+            <SyncDot live={live}/>
+            <button className="icon-btn" onClick={onAdmin} title="管理員後台">⚙️</button>
+          </div>
+        </div>
+        <h2 className="card-title">🎮 遊戲大廳</h2>
+
+        {!verified ? (
+          <div className="code-section">
+            <p className="field-label">輸入遊戲代碼加入</p>
+            <div className="code-row">
+              <input className="inp code-inp" value={code}
+                onChange={e => { setCode(e.target.value.toUpperCase()); setCodeErr(''); }}
+                placeholder="輸入代碼…" maxLength={12} onKeyDown={e => e.key==='Enter' && verify()}/>
+              <button className="btn btn-primary btn-inline" onClick={verify}>確認</button>
+            </div>
+            {codeErr && <p className="err">{codeErr}</p>}
+          </div>
+        ) : (
+          <>
+            <div className="verified-bar">✅ 代碼驗證成功，等待主辦人分組</div>
+            <div className="section">
+              <p className="field-label">👥 大廳玩家（{players.length} 人）</p>
+              <div className="chips">
+                {players.map(p => (
+                  <span key={p.id} className={`chip ${p.id===player.id?'chip-me':''}`}>
+                    {p.name}{groups.find(g=>g.members?.some(m=>m.id===p.id)) ? ' ✓' : ''}
+                  </span>
+                ))}
+              </div>
+            </div>
+            {groups.length > 0 && (
+              <div className="section">
+                <p className="field-label">🏆 分組結果</p>
+                <div className="groups-row">
+                  {groups.map(g => (
+                    <div key={g.id} className={`grp-mini ${myGroup?.id===g.id?'grp-mini-me':''}`}>
+                      <div className="grp-mini-hd">第 {g.id} 組{myGroup?.id===g.id?' 🏅':''}</div>
+                      {g.members?.map(m => (
+                        <div key={m.id} className="grp-mini-m">{m.id===player.id?'▶ ':''}{m.name}</div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {myGroup
+              ? <button className="btn btn-primary btn-lg btn-glow" onClick={onStart}>🚀 開始闖關！</button>
+              : <p className="info-text">⏳ 等待主辦人分組中，請稍候…</p>
+            }
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── GAME ────────────────────────────────────
+function GameScreen({ player, apiKey }) {
+  const [stages, setStages]  = useState(INIT_STAGES);
+  const [groups, setGroups]  = useState([]);
+  const [idx, setIdx]        = useState(0);
+  const [answer, setAnswer]  = useState('');
+  const [photo, setPhoto]    = useState(null);
+  const [fb_, setFb]         = useState(null);
+  const [loading, setLoading]= useState(false);
+  const [done, setDone]      = useState(false);
+  const [live, setLive]      = useState(false);
+  const myGroupRef = useRef(null);
+
+  const myGroup = groups.find(g => g.members?.some(m => m.id === player.id));
+  if (myGroup) myGroupRef.current = myGroup;
+  const ag = myGroup || myGroupRef.current;
+
+  useEffect(() => {
+    const u1 = db.on(P.stages, v => { if (v) setStages(Array.isArray(v)?v:Object.values(v)); });
+    const u2 = db.on(P.groups, v => { setGroups(v ? (Array.isArray(v)?v:Object.values(v)) : []); setLive(true); });
+    return () => { u1(); u2(); };
+  }, []);
+
+  useEffect(() => {
+    if (!ag) return;
+    const u = db.on(P.progress(ag.id), v => {
+      if (v) {
+        setIdx(v.idx || 0);
+        if ((v.idx || 0) >= stages.length) setDone(true);
+      }
+    });
+    return () => u();
+  }, [ag?.id, stages.length]);
+
+  const advance = async () => {
+    if (!ag) return;
+    const next = idx + 1;
+    await db.set(P.progress(ag.id), { idx: next });
+    if (next >= stages.length) setDone(true);
+  };
+
+  const handleText = async () => {
+    const stage = stages[idx];
+    if (!answer.trim() || !stage || loading) return;
+    setLoading(true); setFb(null);
+    const r = await judgeText(answer, stage.answer, stage.hint, stage.failHint, apiKey);
+    setLoading(false);
+    if (r.correct) {
+      setFb({ ok:true, msg: stage.okMsg });
+      setTimeout(() => { setAnswer(''); setFb(null); advance(); }, 2200);
+    } else setFb({ ok:false, msg: r.message });
+  };
+
+  const handlePhoto = async () => {
+    const stage = stages[idx];
+    if (!photo?.file || !stage || loading) return;
+    setLoading(true); setFb(null);
+    try {
+      const { b64, mime } = await fileToB64(photo.file);
+      const r = await judgePhoto(b64, mime, stage.photoDesc || stage.hint, stage.failHint, apiKey);
+      setLoading(false);
+      if (r.correct) {
+        setFb({ ok:true, msg: stage.okMsg });
+        setTimeout(() => { setPhoto(null); setFb(null); advance(); }, 2200);
+      } else setFb({ ok:false, msg: r.message });
+    } catch { setLoading(false); setFb({ ok:false, msg:'照片上傳失敗，請重試。' }); }
+  };
+
+  if (done || idx >= stages.length) {
+    return (
+      <div className="screen"><Rings/>
+        <div className="card" style={{textAlign:'center'}}>
+          <span className="trophy-anim">🏆</span>
+          <h2 className="finish-title">恭喜闖關成功！</h2>
+          <p className="finish-sub">第 {ag?.id} 組完成全部關卡</p>
+          <div className="chips" style={{justifyContent:'center',marginTop:'1rem'}}>
+            {ag?.members?.map(m => <span key={m.id} className={`chip ${m.id===player.id?'chip-me':''}`}>{m.name}</span>)}
+          </div>
+          <div className="confetti-row">🎊 🎉 🎈 🎊</div>
+        </div>
+      </div>
+    );
+  }
+
+  const stage = stages[idx];
+  const pct = (idx / stages.length) * 100;
+
+  return (
+    <div className="screen">
+      <Rings/>
+      <div className="card game-card">
+        <div className="row-between mb-sm">
+          <div className="row-gap">
+            <Tag v="coral">第 {ag?.id || '?'} 組</Tag>
+            <SyncDot live={live}/>
+          </div>
+          <Tag v="teal">第 {idx+1} / {stages.length} 關</Tag>
+        </div>
+        <div className="prog-track">
+          <div className="prog-fill" style={{width:`${pct}%`}}/>
+          {stages.map((_,i) => (
+            <div key={i} className={`prog-node ${i<idx?'nd-done':i===idx?'nd-cur':''}`}
+              style={{left:`${stages.length===1?50:(i/(stages.length-1))*100}%`}}/>
+          ))}
+        </div>
+        <h3 className="stage-h">{stage?.title}</h3>
+        <div className="hint-box">
+          <div className="hint-top">💡 關卡提示</div>
+          <p className="hint-body">{stage?.hint}</p>
+        </div>
+
+        {stage?.type === 'photo' && (
+          <div className="ans-area">
+            <PhotoPicker preview={photo} setPreview={setPhoto}/>
+            <button className={`btn btn-primary ${loading?'btn-spin':''}`}
+              onClick={handlePhoto} disabled={loading||!photo}>
+              {loading ? '🤖 AI 判斷中…' : '📤 提交照片'}
+            </button>
+          </div>
+        )}
+        {stage?.type === 'text' && (
+          <div className="ans-area">
+            <input className="inp" value={answer}
+              onChange={e => { setAnswer(e.target.value); setFb(null); }}
+              placeholder="輸入你的答案…" disabled={loading}
+              onKeyDown={e => e.key==='Enter' && !loading && handleText()}/>
+            <button className={`btn btn-primary ${loading?'btn-spin':''}`}
+              onClick={handleText} disabled={loading||!answer.trim()}>
+              {loading ? '🤖 AI 判斷中…' : '提交答案 →'}
+            </button>
+          </div>
+        )}
+        {stage?.type === 'both' && (
+          <div className="ans-area">
+            <PhotoPicker preview={photo} setPreview={setPhoto}/>
+            <button className={`btn btn-secondary ${loading?'btn-spin':''}`}
+              onClick={handlePhoto} disabled={loading||!photo}>
+              {loading ? '判斷中…' : '📤 提交照片'}
+            </button>
+            <div className="or-line"><span>或輸入文字答案</span></div>
+            <input className="inp" value={answer}
+              onChange={e => { setAnswer(e.target.value); setFb(null); }}
+              placeholder="輸入文字答案…" disabled={loading}
+              onKeyDown={e => e.key==='Enter' && !loading && handleText()}/>
+            <button className={`btn btn-primary ${loading?'btn-spin':''}`}
+              onClick={handleText} disabled={loading||!answer.trim()}>
+              {loading ? '判斷中…' : '提交文字 →'}
+            </button>
+          </div>
+        )}
+
+        {fb_ && (
+          <div className={`fb ${fb_.ok?'fb-ok':'fb-err'}`}>
+            <span>{fb_.ok?'✅':'❌'}</span>
+            <p>{fb_.msg}</p>
+          </div>
+        )}
+
+        <div className="team-row">
+          <span className="muted-sm">隊友：</span>
+          {ag?.members?.map(m => (
+            <span key={m.id} className={`chip chip-sm ${m.id===player.id?'chip-me':''}`}>{m.name}</span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── STAGE EDITOR ────────────────────────────
+function StageEditor({ s, onChange, onSave, onCancel }) {
+  return (
+    <div className="editor">
+      <input className="inp" value={s.title} placeholder="關卡標題" onChange={e=>onChange({...s,title:e.target.value})}/>
+      <textarea className="inp" rows={3} value={s.hint} placeholder="關卡提示" onChange={e=>onChange({...s,hint:e.target.value})}/>
+      <div className="field">
+        <label className="field-label">答案類型</label>
+        <div className="type-btns">
+          {[{v:'text',l:'📝 文字'},{v:'photo',l:'📷 照片'},{v:'both',l:'📝📷 兩者'}].map(t=>(
+            <button key={t.v} className={`type-btn ${s.type===t.v?'active':''}`}
+              onClick={()=>onChange({...s,type:t.v})}>{t.l}</button>
+          ))}
+        </div>
+      </div>
+      {(s.type==='text'||s.type==='both') && <input className="inp" value={s.answer} placeholder="正確答案（文字）" onChange={e=>onChange({...s,answer:e.target.value})}/>}
+      {(s.type==='photo'||s.type==='both') && <textarea className="inp" rows={2} value={s.photoDesc} placeholder="照片評分標準（給 AI 判斷用）" onChange={e=>onChange({...s,photoDesc:e.target.value})}/>}
+      <textarea className="inp" rows={2} value={s.failHint} placeholder="答錯時的提示" onChange={e=>onChange({...s,failHint:e.target.value})}/>
+      <textarea className="inp" rows={2} value={s.okMsg} placeholder="答對時的訊息" onChange={e=>onChange({...s,okMsg:e.target.value})}/>
+      <div className="row-gap mt-sm">
+        <button className="btn btn-primary" style={{flex:1}} onClick={onSave}>儲存</button>
+        <button className="btn btn-ghost" style={{flex:1}} onClick={onCancel}>取消</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── ADMIN PANEL ─────────────────────────────
+function AdminPanel({ onBack }) {
+  const [tab, setTab]         = useState('stages');
+  const [stages, setStages]   = useState(INIT_STAGES);
+  const [players, setPlayers] = useState([]);
+  const [groups, setGroups]   = useState([]);
+  const [progMap, setProgMap] = useState({});
+  const [grpSize, setGrpSize] = useState(3);
+  const [gameCode, setGameCode]= useState(DEFAULT_CODE);
+  const [editS, setEditS]     = useState(null);
+  const [live, setLive]       = useState(false);
+
+  useEffect(() => {
+    const u1 = db.on(P.stages, v => { if (v) setStages(Array.isArray(v)?v:Object.values(v)); });
+    const u2 = db.on(P.players, v => { setPlayers(v?Object.values(v):[]); setLive(true); });
+    const u3 = db.on(P.groups, v => {
+      const grps = v ? (Array.isArray(v)?v:Object.values(v)) : [];
+      setGroups(grps);
+    });
+    const u4 = db.on(P.code, v => { if (v) setGameCode(v); });
+    // progress per group
+    const u5 = db.on('game/progress', v => {
+      if (v) setProgMap(v);
+    });
+    return () => { u1(); u2(); u3(); u4(); u5(); };
+  }, []);
+
+  const saveStages = async (ns) => { setStages(ns); await db.set(P.stages, ns); };
+  const saveCode   = async () => { await db.set(P.code, gameCode); alert(`遊戲代碼已更新：${gameCode}`); };
+
+  const doGroup = async () => {
+    if (!players.length) { alert('目前沒有玩家'); return; }
+    const shuffled = [...players].sort(()=>Math.random()-.5);
+    const ng = [];
+    for (let i=0; i<shuffled.length; i+=grpSize)
+      ng.push({ id: ng.length+1, members: shuffled.slice(i, i+grpSize) });
+    await db.set(P.groups, ng);
+    for (const g of ng) await db.set(P.progress(g.id), { idx:0 });
+    alert(`✅ 分組完成，共 ${ng.length} 組！`);
+  };
+
+  const clearAll = async () => {
+    if (!confirm('確認清除所有玩家和分組資料？')) return;
+    await db.del(P.players);
+    await db.del(P.groups);
+    await db.del('game/progress');
+    alert('已清除');
+  };
+
+  const TABS = [
+    {k:'stages',l:'🗝 關卡'},{k:'players',l:'👥 玩家'},
+    {k:'groups',l:'🏆 分組'},{k:'settings',l:'⚙️ 設定'},
+  ];
+
+  return (
+    <div className="screen">
+      <Rings/>
+      <div className="card admin-card">
+        <div className="row-between mb-md">
+          <button className="back-btn" onClick={onBack}>← 返回</button>
+          <h2 className="admin-h">⚙️ 管理後台</h2>
+          <SyncDot live={live}/>
+        </div>
+        <div className="tab-bar">
+          {TABS.map(t=>(
+            <button key={t.k} className={`tab-btn ${tab===t.k?'active':''}`} onClick={()=>setTab(t.k)}>{t.l}</button>
+          ))}
+        </div>
+
+        {/* STAGES */}
+        {tab==='stages' && (
+          <div className="tab-body">
+            {stages.map((s,i)=>(
+              <div key={s.id} className="s-item">
+                {editS?.id===s.id ? (
+                  <StageEditor s={editS} onChange={setEditS}
+                    onSave={()=>{ saveStages(stages.map(x=>x.id===editS.id?editS:x)); setEditS(null); }}
+                    onCancel={()=>setEditS(null)}/>
+                ) : (
+                  <div className="s-row">
+                    <span className="s-num">第{i+1}關</span>
+                    <span>{s.type==='photo'?'📷':s.type==='both'?'📝📷':'📝'}</span>
+                    <span className="s-name">{s.title}</span>
+                    <button className="icon-btn" onClick={()=>setEditS({...s})}>✏️</button>
+                    <button className="icon-btn" onClick={()=>saveStages(stages.filter(x=>x.id!==s.id))}>🗑️</button>
+                  </div>
+                )}
+              </div>
+            ))}
+            <button className="add-btn" onClick={()=>{
+              const ns={id:Date.now(),title:`第${stages.length+1}關：新關卡`,hint:'',answer:'',type:'text',photoDesc:'',okMsg:'恭喜過關！',failHint:'再想想…'};
+              saveStages([...stages,ns]); setEditS(ns);
+            }}>＋ 新增關卡</button>
+          </div>
+        )}
+
+        {/* PLAYERS */}
+        {tab==='players' && (
+          <div className="tab-body">
+            <div className="row-between mb-sm">
+              <span className="field-label">共 {players.length} 位玩家</span>
+              <button className="btn btn-danger btn-xs" onClick={clearAll}>清除全部</button>
+            </div>
+            {players.length===0 ? <div className="empty">尚無玩家登入</div>
+              : players.map(p=>{
+                const g=groups.find(gr=>gr.members?.some(m=>m.id===p.id));
+                const pi=g?(progMap[g.id]?.idx??0):null;
+                return (
+                  <div key={p.id} className="p-row">
+                    <div className="p-av">{p.name[0]}</div>
+                    <span className="p-name">{p.name}</span>
+                    {g?<Tag v="teal">第{g.id}組</Tag>:<Tag v="gray">未分組</Tag>}
+                    {pi!==null && <span className="muted-sm">第{pi+1}關</span>}
+                  </div>
+                );
+              })
+            }
+          </div>
+        )}
+
+        {/* GROUPS */}
+        {tab==='groups' && (
+          <div className="tab-body">
+            <div className="field mb-sm">
+              <label className="field-label">每組人數</label>
+              <div className="size-row">
+                {[2,3,4,5,6].map(n=>(
+                  <button key={n} className={`size-btn ${grpSize===n?'active':''}`} onClick={()=>setGrpSize(n)}>{n}人</button>
+                ))}
+              </div>
+            </div>
+            <button className="btn btn-primary mb-md" onClick={doGroup}>🎲 隨機分組</button>
+            {groups.length===0 ? <div className="empty">尚未分組</div>
+              : groups.map(g=>{
+                const pi=progMap[g.id]?.idx??0;
+                return (
+                  <div key={g.id} className="g-item mb-xs">
+                    <div className="row-between mb-xs">
+                      <strong>第 {g.id} 組</strong>
+                      <span className="muted-sm">第 {pi+1}/{stages.length} 關</span>
+                    </div>
+                    <div className="chips mb-xs">
+                      {g.members?.map(m=><span key={m.id} className="chip chip-sm">{m.name}</span>)}
+                    </div>
+                    <div className="mini-prog"><div className="mini-fill" style={{width:`${(pi/stages.length)*100}%`}}/></div>
+                  </div>
+                );
+              })
+            }
+          </div>
+        )}
+
+        {/* SETTINGS */}
+        {tab==='settings' && (
+          <div className="tab-body">
+            <div className="field mb-md">
+              <label className="field-label">遊戲代碼</label>
+              <div className="code-row">
+                <input className="inp" value={gameCode} onChange={e=>setGameCode(e.target.value.toUpperCase())} maxLength={12}/>
+                <button className="btn btn-primary btn-inline" onClick={saveCode}>儲存</button>
+              </div>
+            </div>
+            <div className="info-box">
+              <p>🔑 <b>預設代碼：</b>{DEFAULT_CODE}</p>
+              <p>🔒 <b>管理員密碼：</b>admin123</p>
+              <p>🔄 <b>同步方式：</b>Firebase Realtime Database（即時推送）</p>
+              <p>📷 <b>照片判斷：</b>由 Claude AI 自動審核</p>
+              <p>🌐 <b>玩家加入：</b>掃描 QR Code 或開啟網址，無需安裝</p>
+            </div>
+            <button className="btn btn-danger mt-md btn-sm"
+              onClick={()=>{ if(confirm('確認重設設定？系統將重新顯示設定頁面。')){ localStorage.removeItem(LS_FB); localStorage.removeItem(LS_KEY); location.reload(); }}}>
+              🔧 重設系統設定
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── ROOT APP ────────────────────────────────
+function App() {
+  const [apiKey, setApiKey] = useState(null);
+  const [screen, setScreen] = useState('login');
+  const [player, setPlayer] = useState(null);
+
+  useEffect(() => {
+    const fbCfg = localStorage.getItem(LS_FB);
+    const key   = localStorage.getItem(LS_KEY);
+    if (fbCfg && key) {
+      initFirebase(fbCfg);
+      setApiKey(key);
+    }
+  }, []);
+
+  if (!apiKey) {
+    return <SetupScreen onDone={key => setApiKey(key)}/>;
+  }
+
+  return (
+    <>
+      {screen==='login' && (
+        <LoginScreen
+          onLogin={n => { setPlayer({ id: Date.now(), name: n }); setScreen('lobby'); }}
+          onAdmin={() => setScreen('admin')}/>
+      )}
+      {screen==='lobby' && player && (
+        <LobbyScreen player={player} onStart={() => setScreen('game')} onAdmin={() => setScreen('admin')}/>
+      )}
+      {screen==='game' && player && (
+        <GameScreen player={player} apiKey={apiKey}/>
+      )}
+      {screen==='admin' && (
+        <AdminPanel onBack={() => setScreen(player ? 'lobby' : 'login')}/>
+      )}
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
