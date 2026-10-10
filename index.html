@@ -173,6 +173,36 @@
 </head>
 <body>
 <div id="root"></div>
+
+<!-- =====================================================
+  ★  管理員設定區域 — 請填入以下兩個設定後上傳 GitHub
+  =====================================================
+
+  步驟 1：將下方 FIREBASE_CONFIG 換成你的 Firebase 設定
+          （從 Firebase 控制台 > 專案設定 > 你的應用程式 > firebaseConfig 複製）
+
+  步驟 2：將 ANTHROPIC_API_KEY 換成你的 Claude API Key
+          （從 console.anthropic.com > API Keys 取得，格式為 sk-ant-api03-...）
+
+  步驟 3：儲存檔案，重新上傳到 GitHub，即可讓所有玩家直接進入遊戲。
+
+  ★  玩家掃 QR Code 後不會看到此設定，直接進入登入畫面。
+  ===================================================== -->
+<script>
+window.DELIN_CONFIG = {
+  firebase: {
+    apiKey:            "AIzaSyAlqg94ooO3rnF7uUbYb8Iw6EGYmNCyGXI",
+    authDomain:        "delin-lbm-game.firebaseapp.com",
+    databaseURL:       "https://delin-lbm-game-default-rtdb.firebaseio.com",
+    projectId:         "delin-lbm-game",
+    storageBucket:     "delin-lbm-game.firebasestorage.app",
+    messagingSenderId: "612361817985",
+    appId:             "1:612361817985:web:2c48df80b4eb909c4b6280"
+  },
+  anthropicKey: "sk-ant-usr-1L0...iAAA"
+};
+</script>
+
 <script type="text/babel">
 const { useState, useEffect, useRef } = React;
 
@@ -181,8 +211,8 @@ const APP_NAME   = "德霖休閒趣";
 const APP_SUB    = "DELIN FUN QUEST";
 const ADMIN_PW   = "admin123";
 const DEFAULT_CODE = "DELIN2025";
-const LS_FB  = "delin_fb";
-const LS_KEY = "delin_key";
+// 設定從 window.DELIN_CONFIG 讀取（在 HTML 最上方的設定區填入）
+const CFG = window.DELIN_CONFIG || {};
 
 const INIT_STAGES = [
   { id:1, title:"第一關：觀察力挑戰",
@@ -340,7 +370,45 @@ function PhotoPicker({ preview, setPreview }) {
 }
 
 // ─── SETUP SCREEN ────────────────────────────
-// ── 自動解析 Firebase 設定（支援 JS 物件和 JSON 兩種格式）──
+// ── 檢查設定是否已填入 ──────────────────────────
+function isConfigReady() {
+  const fb = CFG.firebase || {};
+  const key = CFG.anthropicKey || '';
+  return fb.databaseURL && !fb.databaseURL.includes('請填入')
+      && key && !key.includes('請填入');
+}
+
+// ── 設定未完成時的提示畫面（只有管理員會看到）──
+function ConfigNeeded() {
+  return (
+    <div className="screen">
+      <Rings/>
+      <div className="card setup-card">
+        <div className="logo">
+          <span className="logo-icon">🏕️</span>
+          <h1>{APP_NAME}</h1>
+          <p className="logo-sub">尚未完成設定</p>
+        </div>
+        <div className="note-box" style={{marginBottom:'1.25rem'}}>
+          ⚠️ 請管理員在 HTML 檔案最上方的設定區填入 Firebase 設定與 Anthropic API Key，再重新上傳到 GitHub。
+        </div>
+        <div className="setup-steps">
+          <div className="setup-step">用文字編輯器（記事本、VSCode 等）開啟 <b>德霖休閒趣.html</b></div>
+          <div className="setup-step">找到檔案最上方標示「<b>★ 管理員設定區域</b>」的區塊</div>
+          <div className="setup-step">將 <b>FIREBASE_CONFIG</b> 各欄位換成你的 Firebase 設定值</div>
+          <div className="setup-step">將 <b>ANTHROPIC_API_KEY</b> 換成你的 Claude API Key（sk-ant-api03-...）</div>
+          <div className="setup-step">儲存後重新上傳到 GitHub，玩家掃 QR Code 就能直接進入遊戲</div>
+        </div>
+        <div className="info-box" style={{marginTop:'1rem'}}>
+          <p>🔗 <b>Firebase：</b><a href="https://console.firebase.google.com" target="_blank" style={{color:'#00D2C8'}}>console.firebase.google.com</a></p>
+          <p>🤖 <b>Anthropic：</b><a href="https://console.anthropic.com" target="_blank" style={{color:'#00D2C8'}}>console.anthropic.com</a></p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── 舊版解析函式保留（備用）────────────────────
 function parseFirebaseCfg(raw) {
   let text = raw.trim();
   // 移除 const/let/var firebaseConfig = ... ; 包裝
@@ -360,136 +428,7 @@ function parseFirebaseCfg(raw) {
   }
 }
 
-function SetupScreen({ onDone }) {
-  const [fbCfg, setFbCfg] = useState('');
-  const [apiKey, setApiKey] = useState('');
-  const [err, setErr]       = useState('');
-  const [hint, setHint]     = useState('');
-  const [testing, setTesting] = useState(false);
 
-  // 即時預覽解析結果
-  const onCfgChange = (val) => {
-    setFbCfg(val);
-    setErr(''); setHint('');
-    if (!val.trim()) return;
-    try {
-      const p = parseFirebaseCfg(val);
-      const fields = ['apiKey','databaseURL','projectId'];
-      const missing = fields.filter(f => !p[f]);
-      if (missing.length) {
-        setHint(`⚠️ 缺少欄位：${missing.join('、')}，請確認已完整複製`);
-      } else {
-        setHint('✅ 格式正確，可以繼續');
-      }
-    } catch(e) {
-      setHint('❌ ' + e.message);
-    }
-  };
-
-  const save = async () => {
-    setErr('');
-    if (!fbCfg.trim()) { setErr('請貼上 Firebase 設定'); return; }
-    if (!apiKey.trim()) { setErr('請輸入 Anthropic API Key'); return; }
-    let parsed;
-    try { parsed = parseFirebaseCfg(fbCfg); }
-    catch(e) { setErr(e.message); return; }
-    if (!parsed.databaseURL) {
-      setErr('缺少 databaseURL！請確認你已在 Firebase 建立「Realtime Database」，並完整複製 firebaseConfig。');
-      return;
-    }
-    if (!parsed.apiKey) { setErr('缺少 apiKey，請重新複製 firebaseConfig 完整內容'); return; }
-    setTesting(true);
-    try {
-      initFirebase(parsed);
-      await db.set('game/ping', Date.now());
-      localStorage.setItem(LS_FB, JSON.stringify(parsed));
-      localStorage.setItem(LS_KEY, apiKey.trim());
-      onDone(apiKey.trim());
-    } catch(e) {
-      setErr('Firebase 連線失敗：' + e.message + '。請確認 databaseURL 正確且資料庫已啟用測試模式。');
-    }
-    setTesting(false);
-  };
-
-  const PLACEHOLDER = `// 直接從 Firebase 控制台複製整段即可，兩種格式都支援：
-
-const firebaseConfig = {
-  apiKey: "AIzaSy...",
-  authDomain: "xxx.firebaseapp.com",
-  databaseURL: "https://xxx-default-rtdb.firebaseio.com",
-  projectId: "xxx",
-  storageBucket: "xxx.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123:web:abc"
-};`;
-
-  return (
-    <div className="screen">
-      <Rings/>
-      <div className="card setup-card">
-        <div className="logo">
-          <span className="logo-icon">🏕️</span>
-          <h1>{APP_NAME}</h1>
-          <p className="logo-sub">初次設定</p>
-        </div>
-
-        <div className="setup-steps">
-          <div className="setup-step">
-            前往 <a href="https://console.firebase.google.com" target="_blank" rel="noreferrer">console.firebase.google.com</a> 登入 → 建立新專案
-          </div>
-          <div className="setup-step">
-            左側點「<b>Realtime Database</b>」→「建立資料庫」→ 選「<b>測試模式</b>」→「完成」
-          </div>
-          <div className="setup-step">
-            左上角齒輪「<b>專案設定</b>」→「您的應用程式」→ 點「<b>&lt;/&gt;</b>」→ 輸入任意名稱 → 複製整個 <b>firebaseConfig</b> 區塊（包含 const 那行）貼到下方
-          </div>
-          <div className="setup-step">
-            前往 <a href="https://console.anthropic.com" target="_blank" rel="noreferrer">console.anthropic.com</a> →「API Keys」→「Create Key」→ 複製金鑰
-          </div>
-        </div>
-
-        <div className="field mt-md">
-          <label>Firebase 設定
-            <span style={{marginLeft:'.5rem',fontSize:'.7rem',color:'#3A6080',fontWeight:'normal',textTransform:'none'}}>
-              直接貼上 Firebase 給你的整段程式碼即可
-            </span>
-          </label>
-          <textarea className="inp" rows={8} value={fbCfg}
-            onChange={e => onCfgChange(e.target.value)}
-            placeholder={PLACEHOLDER}
-            style={{fontFamily:'monospace',fontSize:'.82rem'}}/>
-          {hint && (
-            <p style={{fontSize:'.8rem',marginTop:'.35rem',
-              color: hint.startsWith('✅') ? '#4ADE80' : hint.startsWith('⚠️') ? '#FCD34D' : '#F87171'}}>
-              {hint}
-            </p>
-          )}
-        </div>
-
-        <div className="field">
-          <label>Anthropic API Key</label>
-          <input className="inp" type="password" value={apiKey}
-            onChange={e => { setApiKey(e.target.value); setErr(''); }}
-            placeholder="sk-ant-api03-..."
-            onKeyDown={e => e.key==='Enter' && save()}/>
-        </div>
-
-        <div className="note-box">⚠️ 設定只儲存在此瀏覽器，玩家不會看到設定頁面。請只在管理員裝置上完成此設定。</div>
-
-        {err && (
-          <div style={{background:'rgba(248,113,113,.1)',border:'1px solid rgba(248,113,113,.3)',borderRadius:'.75rem',padding:'.85rem 1rem',marginTop:'.75rem'}}>
-            <p style={{color:'#F87171',fontSize:'.85rem',lineHeight:1.7}}>❌ {err}</p>
-          </div>
-        )}
-
-        <button className={`btn btn-primary btn-lg ${testing?'btn-spin':''}`}
-          onClick={save} disabled={testing} style={{marginTop:'1rem'}}>
-          {testing ? '⏳ 測試連線中…' : '完成設定，開始使用 →'}
-        </button>
-      </div>
-    </div>
-  );
-}
 
 // ─── LOGIN ───────────────────────────────────
 function LoginScreen({ onLogin, onAdmin }) {
@@ -1002,11 +941,8 @@ function AdminPanel({ onBack }) {
               <p>🔄 <b>同步方式：</b>Firebase Realtime Database（即時推送）</p>
               <p>📷 <b>照片判斷：</b>由 Claude AI 自動審核</p>
               <p>🌐 <b>玩家加入：</b>掃描 QR Code 或開啟網址，無需安裝</p>
+              <p>⚙️ <b>更新設定：</b>修改 HTML 檔案最上方的設定區，重新上傳 GitHub 即可</p>
             </div>
-            <button className="btn btn-danger mt-md btn-sm"
-              onClick={()=>{ if(confirm('確認重設設定？系統將重新顯示設定頁面。')){ localStorage.removeItem(LS_FB); localStorage.removeItem(LS_KEY); location.reload(); }}}>
-              🔧 重設系統設定
-            </button>
           </div>
         )}
       </div>
@@ -1016,21 +952,23 @@ function AdminPanel({ onBack }) {
 
 // ─── ROOT APP ────────────────────────────────
 function App() {
-  const [apiKey, setApiKey] = useState(null);
+  const [ready, setReady] = useState(false);
   const [screen, setScreen] = useState('login');
   const [player, setPlayer] = useState(null);
 
   useEffect(() => {
-    const fbCfg = localStorage.getItem(LS_FB);
-    const key   = localStorage.getItem(LS_KEY);
-    if (fbCfg && key) {
-      initFirebase(fbCfg);
-      setApiKey(key);
+    if (!isConfigReady()) return;           // 設定未填，不初始化
+    try {
+      initFirebase(CFG.firebase);
+      setReady(true);
+    } catch(e) {
+      console.error('Firebase 初始化失敗', e);
     }
   }, []);
 
-  if (!apiKey) {
-    return <SetupScreen onDone={key => setApiKey(key)}/>;
+  // 設定未填：只有管理員會看到這個畫面，玩家不會
+  if (!isConfigReady() || !ready) {
+    return <ConfigNeeded/>;
   }
 
   return (
@@ -1044,7 +982,7 @@ function App() {
         <LobbyScreen player={player} onStart={() => setScreen('game')} onAdmin={() => setScreen('admin')}/>
       )}
       {screen==='game' && player && (
-        <GameScreen player={player} apiKey={apiKey}/>
+        <GameScreen player={player} apiKey={CFG.anthropicKey}/>
       )}
       {screen==='admin' && (
         <AdminPanel onBack={() => setScreen(player ? 'lobby' : 'login')}/>
