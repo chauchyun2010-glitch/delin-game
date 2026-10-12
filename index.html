@@ -156,6 +156,15 @@
     .info-box p{font-size:.85rem;color:#7AA0B8;line-height:1.6}
     .info-box b{color:#EFF6FF}
     .icon-btn{background:transparent;border:none;cursor:pointer;font-size:1.1rem;padding:.2rem;line-height:1}
+    /* ── 後台導覽列 ── */
+    .admin-nav{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;padding-bottom:.85rem;border-bottom:1px solid #1A3050}
+    .breadcrumb{display:flex;align-items:center;gap:.2rem;font-size:.78rem;flex-wrap:wrap}
+    .bc-sep{color:#3A6080;margin:0 .15rem}
+    .bc-prev{color:#00D2C8;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+    .bc-prev:hover{color:#00EDE1}
+    .bc-cur{color:#EFF6FF;font-weight:600}
+    .exit-btn{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#F87171;padding:.35rem .75rem;border-radius:.5rem;cursor:pointer;font-size:.8rem;font-family:'Noto Sans TC',sans-serif;white-space:nowrap;transition:all .2s}
+    .exit-btn:hover{background:rgba(239,68,68,.25)}
     .admin-card::-webkit-scrollbar{width:4px}
     .admin-card::-webkit-scrollbar-track{background:#091626}
     .admin-card::-webkit-scrollbar-thumb{background:#1A3050;border-radius:2px}
@@ -485,7 +494,7 @@ function LoginScreen({ onLogin, onAdmin }) {
 }
 
 // ─── LOBBY ───────────────────────────────────
-function LobbyScreen({ player, onStart, onAdmin }) {
+function LobbyScreen({ player, onStart }) {
   const [code, setCode] = useState('');
   const [verified, setVerified] = useState(false);
   const [codeErr, setCodeErr] = useState('');
@@ -520,10 +529,7 @@ function LobbyScreen({ player, onStart, onAdmin }) {
       <div className="card">
         <div className="row-between mb-md">
           <span className="pill">👤 {player.name}</span>
-          <div className="row-gap">
-            <SyncDot live={live}/>
-            <button className="icon-btn" onClick={onAdmin} title="管理員後台">⚙️</button>
-          </div>
+          <SyncDot live={live}/>
         </div>
         <h2 className="card-title">🎮 遊戲大廳</h2>
 
@@ -775,7 +781,7 @@ function StageEditor({ s, onChange, onSave, onCancel }) {
 
 // ─── ADMIN PANEL ─────────────────────────────
 function AdminPanel({ onBack }) {
-  const [tab, setTab]         = useState('stages');
+  const [tabHistory, setTabHistory] = useState(['stages']); // 頁籤歷史
   const [stages, setStages]   = useState(INIT_STAGES);
   const [players, setPlayers] = useState([]);
   const [groups, setGroups]   = useState([]);
@@ -784,6 +790,31 @@ function AdminPanel({ onBack }) {
   const [gameCode, setGameCode]= useState(DEFAULT_CODE);
   const [editS, setEditS]     = useState(null);
   const [live, setLive]       = useState(false);
+
+  const tab = tabHistory[tabHistory.length - 1]; // 目前頁籤
+
+  // 切換頁籤：記錄到歷史
+  const goTab = (t) => {
+    if (t === tab) return;
+    setEditS(null);
+    setTabHistory(prev => [...prev, t]);
+  };
+
+  // 後台內「上一頁」邏輯
+  const goBack = () => {
+    if (editS) { setEditS(null); return; }           // 1. 正在編輯 → 取消編輯
+    if (tabHistory.length > 1) {
+      setTabHistory(prev => prev.slice(0, -1));       // 2. 有歷史 → 回上一個頁籤
+    } else {
+      if (confirm('確定要離開管理員後台？')) onBack(); // 3. 已是第一頁 → 確認才離開
+    }
+  };
+
+  // 離開後台（直接離開，不問）
+  const exitAdmin = () => {
+    if (editS && !confirm('有未儲存的編輯，確定要離開後台？')) return;
+    onBack();
+  };
 
   useEffect(() => {
     const u1 = db.on(P.stages, v => { if (v) setStages(Array.isArray(v)?v:Object.values(v)); });
@@ -831,14 +862,38 @@ function AdminPanel({ onBack }) {
     <div className="screen">
       <Rings/>
       <div className="card admin-card">
-        <div className="row-between mb-md">
-          <button className="back-btn" onClick={onBack}>← 返回</button>
-          <h2 className="admin-h">⚙️ 管理後台</h2>
-          <SyncDot live={live}/>
+        {/* ── 頂部導覽列 ── */}
+        <div className="admin-nav mb-md">
+          <div className="row-gap">
+            <button className="back-btn" onClick={goBack}>
+              {editS ? '✕ 取消編輯' : tabHistory.length > 1 ? '← 上一頁' : '← 返回大廳'}
+            </button>
+            {/* 麵包屑：顯示目前位置 */}
+            {tabHistory.length > 1 && (
+              <span className="breadcrumb">
+                {tabHistory.map((t, i) => (
+                  <span key={i}>
+                    {i > 0 && <span className="bc-sep">›</span>}
+                    <span className={i === tabHistory.length-1 ? 'bc-cur' : 'bc-prev'}
+                      onClick={() => i < tabHistory.length-1 && setTabHistory(tabHistory.slice(0,i+1))}>
+                      {TABS.find(x=>x.k===t)?.l || t}
+                    </span>
+                  </span>
+                ))}
+              </span>
+            )}
+          </div>
+          <div className="row-gap">
+            <SyncDot live={live}/>
+            <button className="exit-btn" onClick={exitAdmin} title="離開後台">🚪 離開</button>
+          </div>
         </div>
+
+        <h2 className="admin-h mb-md">⚙️ 管理後台</h2>
+
         <div className="tab-bar">
           {TABS.map(t=>(
-            <button key={t.k} className={`tab-btn ${tab===t.k?'active':''}`} onClick={()=>setTab(t.k)}>{t.l}</button>
+            <button key={t.k} className={`tab-btn ${tab===t.k?'active':''}`} onClick={()=>goTab(t.k)}>{t.l}</button>
           ))}
         </div>
 
@@ -979,7 +1034,7 @@ function App() {
           onAdmin={() => setScreen('admin')}/>
       )}
       {screen==='lobby' && player && (
-        <LobbyScreen player={player} onStart={() => setScreen('game')} onAdmin={() => setScreen('admin')}/>
+        <LobbyScreen player={player} onStart={() => setScreen('game')}/>
       )}
       {screen==='game' && player && (
         <GameScreen player={player} apiKey={CFG.anthropicKey}/>
