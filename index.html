@@ -156,6 +156,47 @@
     .info-box p{font-size:.85rem;color:#7AA0B8;line-height:1.6}
     .info-box b{color:#EFF6FF}
     .icon-btn{background:transparent;border:none;cursor:pointer;font-size:1.1rem;padding:.2rem;line-height:1}
+    /* ── 遊戲庫 ── */
+    .lib-save-box{background:#091626;border:1px solid rgba(0,210,200,.2);border-radius:.85rem;padding:1rem;display:flex;flex-direction:column;gap:.5rem}
+    .lib-save-hint{font-size:.8rem;color:#5A7A90;line-height:1.5}
+    .lib-divider{display:flex;align-items:center;gap:.75rem;margin:.25rem 0;color:#3A6080;font-size:.8rem;letter-spacing:.05em;text-transform:uppercase}
+    .lib-divider::before,.lib-divider::after{content:'';flex:1;height:1px;background:#1A3050}
+    .lib-card{background:#091626;border:1px solid #1A3050;border-radius:.85rem;padding:.9rem;display:flex;flex-direction:column;gap:.65rem;transition:border .2s}
+    .lib-card:hover{border-color:#2A4A70}
+    .lib-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem}
+    .lib-card-title{font-size:.95rem;font-weight:700;color:#EFF6FF;margin-bottom:.35rem}
+    .lib-card-meta{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+    .lib-code-badge{background:rgba(0,210,200,.15);color:#00D2C8;border:1px solid rgba(0,210,200,.3);border-radius:.35rem;padding:.1rem .5rem;font-size:.75rem;font-weight:700;font-family:'Unbounded',sans-serif;letter-spacing:.05em}
+    .lib-stages-preview{display:flex;flex-wrap:wrap;gap:.35rem}
+    .lib-stage-chip{background:#0D1E33;border:1px solid #1A3050;border-radius:.4rem;padding:.15rem .5rem;font-size:.75rem;color:#7AA0B8}
+    .btn-lib-load{background:rgba(0,210,200,.1);border:1px solid rgba(0,210,200,.3);color:#00D2C8;border-radius:.65rem;padding:.6rem 1rem;cursor:pointer;font-size:.85rem;font-family:'Noto Sans TC',sans-serif;font-weight:700;transition:all .2s;margin:0}
+    .btn-lib-load:hover{background:rgba(0,210,200,.2);transform:translateY(-1px)}
+    /* ── 人工審核（玩家端）── */
+    .review-hint{text-align:center;margin-top:.75rem;padding-top:.75rem;border-top:1px dashed #1A3050}
+    .review-hint p{font-size:.8rem;color:#5A7A90;margin-bottom:.4rem}
+    .btn-review{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:#FCD34D;padding:.55rem 1rem;border-radius:.65rem;cursor:pointer;font-size:.85rem;font-family:'Noto Sans TC',sans-serif;font-weight:700;width:auto;margin:0 auto;transition:all .2s}
+    .btn-review:hover{background:rgba(245,158,11,.25)}
+    .review-pending{display:flex;align-items:center;gap:.75rem;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:.75rem;padding:.85rem 1rem;margin-top:.75rem;animation:fadein .3s ease}
+    .review-spinner{font-size:1.4rem;flex-shrink:0;animation:spin 2s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    /* ── 人工審核（管理員端）── */
+    .rv-card{background:#091626;border:1px solid #1A3050;border-radius:.85rem;padding:.9rem;display:flex;flex-direction:column;gap:.6rem}
+    .rv-card.pending{border-color:rgba(245,158,11,.4)}
+    .rv-card.approved{border-color:rgba(0,210,200,.3);opacity:.7}
+    .rv-card.rejected{border-color:rgba(90,122,144,.3);opacity:.6}
+    .rv-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem}
+    .rv-answer{display:flex;align-items:center;gap:.5rem;background:#0D1E33;border-radius:.5rem;padding:.5rem .75rem}
+    .rv-answer-label{font-size:.75rem;color:#5A7A90;white-space:nowrap}
+    .rv-answer-text{font-size:.9rem;color:#EFF6FF;font-weight:600}
+    .rv-photo-wrap{display:flex;flex-direction:column;gap:.4rem}
+    .rv-photo{width:100%;max-height:200px;object-fit:cover;border-radius:.5rem;border:1px solid #1A3050}
+    .rv-actions{display:flex;flex-direction:column;gap:.5rem}
+    .rv-reject-row{display:flex;gap:.5rem;align-items:center}
+    .rv-reject-row .inp{flex:1}
+    .rv-btn{margin:0;flex-shrink:0}
+    .rv-btn-approve{background:#00D2C8;color:#07111F;font-weight:700;border:none;border-radius:.65rem;padding:.65rem 1rem;cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-size:.88rem;transition:all .2s;margin:0}
+    .rv-btn-approve:hover{background:#00EDE1;transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,210,200,.3)}
+    .rv-reject-msg{font-size:.8rem;color:#5A7A90;padding:.4rem .6rem;background:#0D1E33;border-radius:.4rem}
     /* ── 後台導覽列 ── */
     .admin-nav{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;padding-bottom:.85rem;border-bottom:1px solid #1A3050}
     .breadcrumb{display:flex;align-items:center;gap:.2rem;font-size:.78rem;flex-wrap:wrap}
@@ -279,7 +320,30 @@ const P = {
   progress: gid => `game/progress/${gid}`,
   stages:   'game/stages',
   code:     'game/code',
+  reviews:  'game/reviews',
+  review:   id  => `game/reviews/${id}`,
+  // ── 遊戲庫：儲存多個遊戲設定 ──────────────
+  library:        'library',               // 所有已儲存遊戲
+  libGame: code => `library/${code}`,      // 單一遊戲
 };
+
+// 壓縮圖片為小縮圖（供人工審核顯示用，避免 Firebase 超載）
+function compressImage(file, maxPx = 320) {
+  return new Promise(resolve => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const ratio = Math.min(maxPx / img.width, maxPx / img.height, 1);
+      const canvas = document.createElement('canvas');
+      canvas.width  = Math.round(img.width  * ratio);
+      canvas.height = Math.round(img.height * ratio);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg', 0.75).split(',')[1]);
+    };
+    img.src = url;
+  });
+}
 
 // ─── CLAUDE API ──────────────────────────────
 async function judgeText(answer, correct, hint, failHint, apiKey) {
@@ -585,15 +649,17 @@ function LobbyScreen({ player, onStart }) {
 
 // ─── GAME ────────────────────────────────────
 function GameScreen({ player, apiKey }) {
-  const [stages, setStages]  = useState(INIT_STAGES);
-  const [groups, setGroups]  = useState([]);
-  const [idx, setIdx]        = useState(0);
-  const [answer, setAnswer]  = useState('');
-  const [photo, setPhoto]    = useState(null);
-  const [fb_, setFb]         = useState(null);
-  const [loading, setLoading]= useState(false);
-  const [done, setDone]      = useState(false);
-  const [live, setLive]      = useState(false);
+  const [stages, setStages]      = useState(INIT_STAGES);
+  const [groups, setGroups]      = useState([]);
+  const [idx, setIdx]            = useState(0);
+  const [answer, setAnswer]      = useState('');
+  const [photo, setPhoto]        = useState(null);
+  const [fb_, setFb]             = useState(null);
+  const [loading, setLoading]    = useState(false);
+  const [done, setDone]          = useState(false);
+  const [live, setLive]          = useState(false);
+  const [reviewStatus, setReviewStatus] = useState('none'); // none | pending | approved | rejected
+  const [reviewMsg, setReviewMsg]       = useState('');
   const myGroupRef = useRef(null);
 
   const myGroup = groups.find(g => g.members?.some(m => m.id === player.id));
@@ -617,6 +683,22 @@ function GameScreen({ player, apiKey }) {
     return () => u();
   }, [ag?.id, stages.length]);
 
+  // 監聽當前關卡的人工審核狀態
+  useEffect(() => {
+    if (!ag) return;
+    const reviewId = `${ag.id}_${idx}`;
+    const u = db.on(P.review(reviewId), v => {
+      if (!v) { setReviewStatus('none'); return; }
+      setReviewStatus(v.status);
+      if (v.status === 'rejected') setReviewMsg(v.rejectMsg || '請重新確認答案後再試。');
+      if (v.status === 'approved') {
+        setFb({ ok:true, msg:'✅ 管理員已通過審核！即將進入下一關…' });
+        setTimeout(() => { setFb(null); setReviewStatus('none'); }, 2500);
+      }
+    });
+    return () => u();
+  }, [ag?.id, idx]);
+
   const advance = async () => {
     if (!ag) return;
     const next = idx + 1;
@@ -624,10 +706,34 @@ function GameScreen({ player, apiKey }) {
     if (next >= stages.length) setDone(true);
   };
 
+  // 送出人工審核申請
+  const requestReview = async (type) => {
+    if (!ag) return;
+    const stage = stages[idx];
+    const reviewId = `${ag.id}_${idx}`;
+    const review = {
+      groupId: ag.id,
+      groupName: `第 ${ag.id} 組`,
+      stageIdx: idx,
+      stageTitle: stage?.title || '',
+      type,
+      status: 'pending',
+      createdAt: Date.now(),
+      answer: type === 'text' ? answer : null,
+      thumbnail: null,
+    };
+    // 照片關卡：壓縮後存縮圖
+    if (type === 'photo' && photo?.file) {
+      try { review.thumbnail = await compressImage(photo.file); } catch(_) {}
+    }
+    await db.set(P.review(reviewId), review);
+    setReviewStatus('pending');
+  };
+
   const handleText = async () => {
     const stage = stages[idx];
     if (!answer.trim() || !stage || loading) return;
-    setLoading(true); setFb(null);
+    setLoading(true); setFb(null); setReviewStatus('none');
     const r = await judgeText(answer, stage.answer, stage.hint, stage.failHint, apiKey);
     setLoading(false);
     if (r.correct) {
@@ -639,7 +745,7 @@ function GameScreen({ player, apiKey }) {
   const handlePhoto = async () => {
     const stage = stages[idx];
     if (!photo?.file || !stage || loading) return;
-    setLoading(true); setFb(null);
+    setLoading(true); setFb(null); setReviewStatus('none');
     try {
       const { b64, mime } = await fileToB64(photo.file);
       const r = await judgePhoto(b64, mime, stage.photoDesc || stage.hint, stage.failHint, apiKey);
@@ -734,10 +840,44 @@ function GameScreen({ player, apiKey }) {
           </div>
         )}
 
+        {/* AI 回饋訊息 */}
         {fb_ && (
           <div className={`fb ${fb_.ok?'fb-ok':'fb-err'}`}>
             <span>{fb_.ok?'✅':'❌'}</span>
             <p>{fb_.msg}</p>
+          </div>
+        )}
+
+        {/* 人工審核區塊 */}
+        {reviewStatus === 'none' && fb_ && !fb_.ok && (
+          <div className="review-hint">
+            <p>認為 AI 判斷有誤？</p>
+            <button className="btn btn-review"
+              onClick={() => requestReview(stage?.type === 'photo' ? 'photo' : 'text')}>
+              🙋 申請管理員人工審核
+            </button>
+          </div>
+        )}
+
+        {reviewStatus === 'pending' && (
+          <div className="review-pending">
+            <span className="review-spinner">⏳</span>
+            <div>
+              <p style={{fontWeight:700,color:'#FCD34D'}}>已送出人工審核申請</p>
+              <p style={{fontSize:'.82rem',color:'#7AA0B8',marginTop:'.2rem'}}>等待管理員確認中，通過後將自動進入下一關</p>
+            </div>
+          </div>
+        )}
+
+        {reviewStatus === 'rejected' && (
+          <div className="fb fb-err">
+            <span>🙅</span>
+            <div>
+              <p style={{fontWeight:700}}>管理員審核未通過</p>
+              <p style={{fontSize:'.85rem',marginTop:'.25rem'}}>{reviewMsg}</p>
+              <button className="btn btn-ghost btn-xs" style={{marginTop:'.5rem',width:'auto'}}
+                onClick={() => setReviewStatus('none')}>重新作答</button>
+            </div>
           </div>
         )}
 
@@ -790,6 +930,13 @@ function AdminPanel({ onBack }) {
   const [gameCode, setGameCode]= useState(DEFAULT_CODE);
   const [editS, setEditS]     = useState(null);
   const [live, setLive]       = useState(false);
+  const [reviews, setReviews]     = useState([]);
+  const [rejectInputs, setRejectInputs] = useState({});
+  // 遊戲庫
+  const [library, setLibrary]     = useState([]);
+  const [libCode, setLibCode]     = useState('');
+  const [libTitle, setLibTitle]   = useState('');
+  const [libSaving, setLibSaving] = useState(false);
 
   const tab = tabHistory[tabHistory.length - 1]; // 目前頁籤
 
@@ -824,11 +971,19 @@ function AdminPanel({ onBack }) {
       setGroups(grps);
     });
     const u4 = db.on(P.code, v => { if (v) setGameCode(v); });
-    // progress per group
-    const u5 = db.on('game/progress', v => {
-      if (v) setProgMap(v);
+    const u5 = db.on('game/progress', v => { if (v) setProgMap(v); });
+    const u6 = db.on(P.reviews, v => {
+      if (!v) { setReviews([]); return; }
+      const list = Object.entries(v).map(([id, r]) => ({ ...r, _id: id }));
+      list.sort((a,b) => b.createdAt - a.createdAt);
+      setReviews(list);
     });
-    return () => { u1(); u2(); u3(); u4(); u5(); };
+    const u7 = db.on(P.library, v => {
+      if (!v) { setLibrary([]); return; }
+      const list = Object.values(v).sort((a,b) => b.savedAt - a.savedAt);
+      setLibrary(list);
+    });
+    return () => { u1(); u2(); u3(); u4(); u5(); u6(); u7(); };
   }, []);
 
   const saveStages = async (ns) => { setStages(ns); await db.set(P.stages, ns); };
@@ -850,12 +1005,80 @@ function AdminPanel({ onBack }) {
     await db.del(P.players);
     await db.del(P.groups);
     await db.del('game/progress');
+    await db.del(P.reviews);
     alert('已清除');
   };
 
+  // 審核通過：推進該組進度
+  const approveReview = async (review) => {
+    await db.set(P.progress(review.groupId), { idx: review.stageIdx + 1 });
+    await db.set(P.review(review._id), { ...review, status:'approved', reviewedAt: Date.now() });
+  };
+
+  // 審核退回：附上退回理由
+  const rejectReview = async (review) => {
+    const msg = rejectInputs[review._id] || '請重新確認答案後再試。';
+    await db.set(P.review(review._id), { ...review, status:'rejected', rejectMsg: msg, reviewedAt: Date.now() });
+    setRejectInputs(prev => { const n={...prev}; delete n[review._id]; return n; });
+  };
+
+  const pendingCount = reviews.filter(r => r.status === 'pending').length;
+
+  // ── 遊戲庫功能 ──────────────────────────────
+  // 儲存當前關卡為新遊戲
+  const saveToLibrary = async () => {
+    const code = libCode.trim().toUpperCase();
+    if (!code) { alert('請輸入遊戲代碼'); return; }
+    if (!libTitle.trim()) { alert('請輸入遊戲名稱'); return; }
+    if (library.find(g => g.code === code)) {
+      if (!confirm(`遊戲代碼「${code}」已存在，確定要覆蓋嗎？`)) return;
+    }
+    setLibSaving(true);
+    await db.set(P.libGame(code), {
+      code,
+      title: libTitle.trim(),
+      stages,
+      stageCount: stages.length,
+      savedAt: Date.now(),
+    });
+    // 同時更新 Firebase 遊戲代碼
+    await db.set(P.code, code);
+    setGameCode(code);
+    setLibCode(''); setLibTitle('');
+    setLibSaving(false);
+    alert(`✅ 已儲存為「${libTitle.trim()}」（代碼：${code}）`);
+  };
+
+  // 從遊戲庫載入遊戲（清除當前進行中的資料）
+  const loadFromLibrary = async (game) => {
+    if (!confirm(`載入「${game.title}」（${game.code}）\n\n⚠️ 這將會：\n• 更換當前關卡內容\n• 將遊戲代碼改為 ${game.code}\n• 清除目前玩家、分組、進度\n\n確定繼續？`)) return;
+    // 更新關卡和代碼
+    await db.set(P.stages, game.stages);
+    await db.set(P.code, game.code);
+    // 清除當次遊戲資料
+    await db.del(P.players);
+    await db.del(P.groups);
+    await db.del('game/progress');
+    await db.del(P.reviews);
+    setStages(game.stages);
+    setGameCode(game.code);
+    goTab('stages');
+    alert(`✅ 已載入「${game.title}」，遊戲代碼：${game.code}\n玩家可用此代碼加入新遊戲。`);
+  };
+
+  // 刪除遊戲庫中的遊戲
+  const deleteFromLibrary = async (game) => {
+    if (!confirm(`確定要刪除「${game.title}」（${game.code}）？\n此操作無法復原。`)) return;
+    await db.del(P.libGame(game.code));
+  };
+
   const TABS = [
-    {k:'stages',l:'🗝 關卡'},{k:'players',l:'👥 玩家'},
-    {k:'groups',l:'🏆 分組'},{k:'settings',l:'⚙️ 設定'},
+    {k:'stages',  l:'🗝 關卡'},
+    {k:'players', l:'👥 玩家'},
+    {k:'groups',  l:'🏆 分組'},
+    {k:'reviews', l: pendingCount > 0 ? `📋 審核 (${pendingCount})` : '📋 審核'},
+    {k:'library', l:'🎮 遊戲庫'},
+    {k:'settings',l:'⚙️ 設定'},
   ];
 
   return (
@@ -976,6 +1199,139 @@ function AdminPanel({ onBack }) {
                   </div>
                 );
               })
+            }
+          </div>
+        )}
+
+        {/* REVIEWS */}
+        {tab==='reviews' && (
+          <div className="tab-body">
+            {reviews.length === 0 ? (
+              <div className="empty">目前沒有審核申請</div>
+            ) : reviews.map(rv => (
+              <div key={rv._id} className={`rv-card ${rv.status}`}>
+                {/* 標題列 */}
+                <div className="rv-header">
+                  <div className="row-gap">
+                    <Tag v={rv.status==='pending'?'coral':rv.status==='approved'?'teal':'gray'}>
+                      {rv.status==='pending'?'⏳ 待審核':rv.status==='approved'?'✅ 已通過':'❌ 已退回'}
+                    </Tag>
+                    <strong>{rv.groupName}</strong>
+                    <span className="muted-sm">{rv.stageTitle}</span>
+                  </div>
+                  <span className="muted-sm">{new Date(rv.createdAt).toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'})}</span>
+                </div>
+
+                {/* 文字答案 */}
+                {rv.type==='text' && rv.answer && (
+                  <div className="rv-answer">
+                    <span className="rv-answer-label">📝 玩家答案</span>
+                    <span className="rv-answer-text">{rv.answer}</span>
+                  </div>
+                )}
+
+                {/* 照片縮圖 */}
+                {rv.type==='photo' && rv.thumbnail && (
+                  <div className="rv-photo-wrap">
+                    <p className="rv-answer-label">📷 上傳照片</p>
+                    <img src={`data:image/jpeg;base64,${rv.thumbnail}`} className="rv-photo" alt="審核照片"/>
+                  </div>
+                )}
+
+                {/* 待審核才顯示操作按鈕 */}
+                {rv.status==='pending' && (
+                  <div className="rv-actions">
+                    <div className="rv-reject-row">
+                      <input className="inp" style={{fontSize:'.82rem',padding:'.45rem .75rem'}}
+                        value={rejectInputs[rv._id] || ''}
+                        onChange={e => setRejectInputs(p=>({...p,[rv._id]:e.target.value}))}
+                        placeholder="退回理由（選填）"/>
+                      <button className="btn btn-danger btn-xs rv-btn" onClick={() => rejectReview(rv)}>❌ 退回</button>
+                    </div>
+                    <button className="btn btn-primary rv-btn-approve" onClick={() => approveReview(rv)}>
+                      ✅ 通過，讓此組進入下一關
+                    </button>
+                  </div>
+                )}
+
+                {/* 已退回顯示理由 */}
+                {rv.status==='rejected' && rv.rejectMsg && (
+                  <p className="rv-reject-msg">退回理由：{rv.rejectMsg}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* LIBRARY */}
+        {tab==='library' && (
+          <div className="tab-body">
+            {/* 儲存當前關卡 */}
+            <div className="lib-save-box">
+              <p className="field-label">💾 將當前關卡儲存至遊戲庫</p>
+              <div className="field">
+                <label>遊戲代碼（玩家加入用）</label>
+                <input className="inp code-inp" value={libCode}
+                  onChange={e => setLibCode(e.target.value.toUpperCase().replace(/\s/g,''))}
+                  placeholder="例：SPORT2025" maxLength={16}/>
+              </div>
+              <div className="field">
+                <label>遊戲名稱</label>
+                <input className="inp" value={libTitle}
+                  onChange={e => setLibTitle(e.target.value)}
+                  placeholder="例：2025年運動會闖關"/>
+              </div>
+              <p className="lib-save-hint">
+                目前有 <b style={{color:'#00D2C8'}}>{stages.length} 個關卡</b>，
+                儲存後可在下方「遊戲庫」隨時載回使用。
+              </p>
+              <button className={`btn btn-primary ${libSaving?'btn-spin':''}`}
+                onClick={saveToLibrary} disabled={libSaving}>
+                {libSaving ? '儲存中…' : '💾 儲存至遊戲庫'}
+              </button>
+            </div>
+
+            {/* 遊戲庫列表 */}
+            <div className="lib-divider">
+              <span>已儲存的遊戲（{library.length} 個）</span>
+            </div>
+
+            {library.length === 0
+              ? <div className="empty">遊戲庫是空的，先將當前關卡儲存進來吧！</div>
+              : library.map(game => (
+                <div key={game.code} className="lib-card">
+                  <div className="lib-card-top">
+                    <div>
+                      <div className="lib-card-title">{game.title}</div>
+                      <div className="lib-card-meta">
+                        <span className="lib-code-badge">{game.code}</span>
+                        <span className="muted-sm">{game.stageCount} 個關卡</span>
+                        <span className="muted-sm">
+                          {new Date(game.savedAt).toLocaleDateString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit'})}
+                        </span>
+                      </div>
+                    </div>
+                    <button className="icon-btn" title="刪除"
+                      onClick={() => deleteFromLibrary(game)}>🗑️</button>
+                  </div>
+
+                  {/* 關卡預覽 */}
+                  <div className="lib-stages-preview">
+                    {game.stages?.slice(0,4).map((s,i) => (
+                      <span key={i} className="lib-stage-chip">
+                        {s.type==='photo'?'📷':s.type==='both'?'📝📷':'📝'} 第{i+1}關
+                      </span>
+                    ))}
+                    {game.stages?.length > 4 && (
+                      <span className="lib-stage-chip">+{game.stages.length-4} 關</span>
+                    )}
+                  </div>
+
+                  <button className="btn btn-lib-load" onClick={() => loadFromLibrary(game)}>
+                    📥 載入此遊戲，開始新局
+                  </button>
+                </div>
+              ))
             }
           </div>
         )}
